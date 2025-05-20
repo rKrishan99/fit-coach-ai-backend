@@ -1,9 +1,6 @@
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
-import mongoose from "mongoose";
-import bodyParser from "body-parser";
-import cors from "cors";
-import connectDB from "./db.js";
+import connectDB from "./config/db.js";
 import { typeDefs, resolvers } from "./graphql/schema.js";
 import dotenv from "dotenv";
 
@@ -14,7 +11,6 @@ const startServer = async () => {
 
   const PORT = process.env.PORT;
 
-  // Create Apollo Server
   const server = new ApolloServer({
     typeDefs,
     resolvers,
@@ -26,7 +22,7 @@ const startServer = async () => {
   await connectDB();
 
   app.listen(PORT, () => {
-    console.log(`✅ User server is running on port ${PORT}`);
+    console.log(`✅ Auth server is running on port ${PORT}`);
   });
 };
 

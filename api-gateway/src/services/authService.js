@@ -43,3 +43,31 @@ export const registerUser = async (email, password, name, profileImage, role) =>
 
   return data.data.register;
 };
+
+export const loginUser = async (email, password) => {
+  const response = await fetch("http://localhost:4001/graphql", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: `
+        mutation Login($email: String!, $password: String!) {
+          login(email: $email, password: $password) {
+            token
+            user {
+              id
+              email
+              name
+              profileImage
+              role
+            }
+          }
+        }
+      `,
+      variables: { email, password }
+    })
+  });
+
+  const data = await response.json();
+  if (data.errors) throw new Error(data.errors[0].message);
+  return data.data.login;
+};

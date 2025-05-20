@@ -29,6 +29,8 @@ export const typeDefs = gql`
       profileImage: String!
       role: String!
     ): AuthPayload!
+
+    login(email: String!, password: String!): AuthPayload! # Add login mutation
   }
 `;
 
@@ -54,6 +56,32 @@ export const resolvers = {
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
         expiresIn: "7d",
       });
+
+      return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          profileImage: user.profileImage,
+          role: user.role,
+        },
+      };
+    },
+
+    // login
+    login: async (_, { email, password }) => {
+      const user = await User.findOne({ email });
+      if (!user) throw new Error("User not found");
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) throw new Error("Invalid credentials");
+
+      const token = jwt.sign(
+        { userId: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
 
       return {
         token,
