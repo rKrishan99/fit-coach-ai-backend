@@ -1,7 +1,5 @@
 import { gql } from "apollo-server-express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { User } from "../model/User.js";
+import { authController } from "../controller/authController.js";
 
 export const typeDefs = gql`
   type User {
@@ -17,8 +15,18 @@ export const typeDefs = gql`
     user: User!
   }
 
+  type ResetResponse {
+    message: String!
+    success: Boolean!
+  }
+
+  type VerifyResponse {
+    user: User!
+  }
+
   type Query {
     _: Boolean
+    verifyToken(token: String!): VerifyResponse!
   }
 
   type Mutation {
@@ -30,69 +38,40 @@ export const typeDefs = gql`
       role: String!
     ): AuthPayload!
 
-    login(email: String!, password: String!): AuthPayload! # Add login mutation
+    login(email: String!, password: String!): AuthPayload!
+
+    requestPasswordReset(email: String!): ResetResponse!
+
+    resetPassword(token: String!, newPassword: String!): ResetResponse!
   }
 `;
 
 export const resolvers = {
   Query: {
     _: () => true,
+    
+    verifyToken: async (_, { token }) => {
+      return await authController.verifyToken(token);
+    },
   },
+
   Mutation: {
-    register: async (_, { email, password, name, profileImage, role }) => {
-      const existingUser = await User.findOne({ email });
-      if (existingUser) throw new Error("User already exists");
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const user = await User.create({
-        email,
-        password: hashedPassword,
-        name,
-        profileImage,
-        role,
-      });
-
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
-      });
-
-      return {
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          profileImage: user.profileImage,
-          role: user.role,
-        },
-      };
+    register: async (_, userData) => {
+      return await authController.register(userData);
     },
 
-    // login
-    login: async (_, { email, password }) => {
-      const user = await User.findOne({ email });
-      if (!user) throw new Error("User not found");
+    login: async (_, credentials) => {
+      return await authController.login(credentials);
+    },
 
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) throw new Error("Invalid credentials");
+    requestPasswordReset: async (_, { email }) => {
+      return await authController.requestPasswordReset(email);
+    },
 
-      const token = jwt.sign(
-        { userId: user.id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      return {
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          profileImage: user.profileImage,
-          role: user.role,
-        },
-      };
+    resetPassword: async (_, resetData) => {
+      return await authController.resetPassword(resetData);
     },
   },
 };
+
+

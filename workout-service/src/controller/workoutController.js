@@ -11,40 +11,61 @@ console.log("GEMINI_API_KEY exists:", !!process.env.GEMINI_API_KEY);
 console.log("USER_SERVICE_URL:", process.env.USER_SERVICE_URL);
 
 async function generateWorkoutPlan(_, { userId }) {
-  console.log("Generating plan for userId:", userId);
+  try {
+    console.log("Generating plan for userId:", userId);
 
-  const userBio = await fetchUserBio(userId);
-  console.log("Fetched user bio:", userBio);
+    // Fetch user bio data
+    const userBio = await fetchUserBio(userId);
+    console.log("Fetched user bio:", userBio);
 
-  const prompt = buildPrompt(userBio);
-  console.log("Generated prompt:", prompt.substring(0, 100) + "...");
+    // Generate prompt
+    const prompt = buildPrompt(userBio);
+    console.log("Generated prompt:", prompt.substring(0, 200) + "...");
 
-  const aiPlan = await generateAIPlan(prompt);
-  console.log("Received AI Plan:", aiPlan.substring(0, 100) + "...");
+    // Get AI generated plan
+    const aiPlan = await generateAIPlan(prompt);
+    console.log("Received AI Plan:", aiPlan.substring(0, 200) + "...");
 
-  let savedPlan;
+    let savedPlan;
 
-  // First check if a plan exists for this user
-  const existingPlan = await WorkoutPlan.findOne({ userId });
+    // First check if a plan exists for this user
+    const existingPlan = await WorkoutPlan.findOne({ userId });
 
-  if (existingPlan) {
-    savedPlan = await WorkoutPlan.findOneAndUpdate(
-      { userId },
-      { plan: aiPlan },
-      { new: true }
-    );
-    console.log("Updated workout plan:", savedPlan);
+    if (existingPlan) {
+      savedPlan = await WorkoutPlan.findOneAndUpdate(
+        { userId },
+        { plan: aiPlan },
+        { new: true }
+      );
+      console.log("Updated workout plan for user:", userId);
+    } else {
+      savedPlan = await WorkoutPlan.create({ userId, plan: aiPlan });
+      console.log("Created new workout plan for user:", userId);
+    }
 
     return savedPlan;
-  } else {
-    savedPlan = await WorkoutPlan.create({ userId, plan: aiPlan });
-    console.log("Saved workout plan:", savedPlan);
-    return savedPlan;
+  } catch (error) {
+    console.error("Error in generateWorkoutPlan:", error);
+    throw new Error(`Failed to generate workout plan: ${error.message}`);
   }
 }
 
 async function getWorkoutPlan(_, { userId }) {
-  return await WorkoutPlan.findOne({ userId }).sort({ createdAt: -1 });
+  try {
+    console.log("Fetching workout plan for userId:", userId);
+    const plan = await WorkoutPlan.findOne({ userId }).sort({ createdAt: -1 });
+    
+    if (!plan) {
+      console.log("No workout plan found for user:", userId);
+      return null;
+    }
+    
+    console.log("Found workout plan for user:", userId);
+    return plan;
+  } catch (error) {
+    console.error("Error in getWorkoutPlan:", error);
+    throw new Error(`Failed to get workout plan: ${error.message}`);
+  }
 }
 
 export { generateWorkoutPlan, getWorkoutPlan };

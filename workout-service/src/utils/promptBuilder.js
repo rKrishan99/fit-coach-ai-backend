@@ -1,4 +1,3 @@
-
 function buildPrompt(userBio) {
   const {
     userId,
@@ -11,8 +10,10 @@ function buildPrompt(userBio) {
     goal,
     activityLevel,
     experience,
-    workoutDays
+    workoutDays,
   } = userBio;
+
+  console.log("Building prompt for user:", { userId, name, age, gender, goal });
 
   return `
 Generate a personalized weekly workout plan in JSON format based on the following user bio:
